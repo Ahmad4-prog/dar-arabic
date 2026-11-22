@@ -546,3 +546,5 @@ html[dir=rtl] .tcard b.ar{font-size:34px}
   html[dir=rtl] .da-fab{left:14px}html[dir=rtl] .da-panel{left:10px;right:10px}
   html[dir=rtl] .rs::before{left:auto;right:24px}
 }
+.da-msg a{color:var(--emerald);font-weight:700;text-decoration:underline;text-underline-offset:2px;word-break:break-word}.da-user a{color:inherit}
+@media (min-width:601px){.da-panel{width:400px;height:640px}}
