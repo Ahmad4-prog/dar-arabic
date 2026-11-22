@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ahmad4-prog.github.io/dar-arabic/sitemap.xml
