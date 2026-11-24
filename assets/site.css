@@ -668,3 +668,5 @@ html[dir=rtl] .tcard b.ar{font-size:34px}
   .ct-readtx{font-size:23px;max-height:250px}
   .ct-pr{grid-template-columns:1fr 1fr}.ct-pl{grid-column:1/-1}
 }
+.ct-srow em{font-style:normal;color:var(--bad);font-size:13px;font-weight:700;margin-left:4px;white-space:nowrap}
+.ct-chs{margin-top:16px}

@@ -6,13 +6,13 @@
   var root = document.getElementById('ct'); if (!root) return;
   var SRC = root.getAttribute('data-src'), TID = root.getAttribute('data-id') || 'test';
   var TITLE = root.getAttribute('data-title') || 'Тест';
-  var KEY = 'dar_ct_' + TID, MAX_ATT = 1, LIMIT = 40 * 60, PASS = 70;
+  var KEY = 'dar_ct_' + TID, MAX_ATT = 1, MIN = +(root.getAttribute('data-min') || 40), LIMIT = MIN * 60, PASS = 70;
   var ARC = '؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿';
   var reAr = new RegExp('[' + ARC + ']'), reLat = /[A-Za-zА-Яа-яЁё]/;
   var reRun = new RegExp('[_' + ARC + ']+(?:[\\s_+=]+[_' + ARC + ']+)*', 'g');
   var LET = ['А','Б','В','Г','Д','Е'];
 
-  var data = null, SECS = [], Q = [], ans = [], cur = 0, phase = 'intro', started = 0, timer = null, name = '', last = null;
+  var data = null, SECS = [], CHS = [], Q = [], ans = [], cur = 0, phase = 'intro', started = 0, timer = null, name = '', last = null;
 
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function isAr(s){ s = String(s); return reAr.test(s) && !reLat.test(s); }
@@ -38,11 +38,23 @@
   function save(s){ try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){} }
   function bestOf(st){ var b = null; st.attempts.forEach(function(a){ if (!b || a.pct > b.pct) b = a; }); return b; }
   function grade(p){ return p >= 90 ? 'Отлично' : (p >= PASS ? 'Хорошо' : 'Нужно повторить'); }
+  function cp(r, c){ return Math.round(r.ch[c].s / r.ch[c].m * 100); }
+  function weak(r){ return CHS.filter(function(c){ return cp(r, c) < PASS; }); }
   function totalPoints(){ var t = 0; data.questions.forEach(function(q){ t += q.points; }); return t; }
 
+  function order(){
+    var seen = {}, read = {}; SECS = []; CHS = [];
+    data.questions.forEach(function(q){
+      if (!seen[q.section]) { seen[q.section] = 1; SECS.push(q.section); }
+      if (q.reading_text) read[q.section] = 1;
+      if (q.chapter != null && CHS.indexOf(q.chapter) < 0) CHS.push(q.chapter);
+    });
+    SECS = SECS.filter(function(s){ return !read[s]; }).concat(SECS.filter(function(s){ return read[s]; }));
+    CHS.sort(function(a, b){ return a - b; });
+  }
   function prepare(){
-    var by = {}; SECS = [];
-    data.questions.forEach(function(q){ if (!by[q.section]) { by[q.section] = []; SECS.push(q.section); } by[q.section].push(q); });
+    var by = {}; order();
+    data.questions.forEach(function(q){ (by[q.section] = by[q.section] || []).push(q); });
     Q = [];
     SECS.forEach(function(s){
       shuffle(by[s]).forEach(function(q){
@@ -81,9 +93,9 @@
   function intro(){
     var st = load(), n = st.attempts.length, best = bestOf(st), tp = totalPoints();
     var h = '<div class="ct-card ct-intro">';
-    h += '<div class="ct-facts"><div><b>' + data.questions.length + '</b><span>' + plural(data.questions.length, 'вопрос', 'вопроса', 'вопросов') + '</span></div><div><b>' + tp + '</b><span>' + plural(tp, 'балл', 'балла', 'баллов') + '</span></div><div><b>40</b><span>минут</span></div><div><b>' + PASS + ' %</b><span>проходной балл</span></div></div>';
+    h += '<div class="ct-facts"><div><b>' + data.questions.length + '</b><span>' + plural(data.questions.length, 'вопрос', 'вопроса', 'вопросов') + '</span></div><div><b>' + tp + '</b><span>' + plural(tp, 'балл', 'балла', 'баллов') + '</span></div><div><b>' + MIN + '</b><span>' + plural(MIN, 'минута', 'минуты', 'минут') + '</span></div><div><b>' + PASS + ' %</b><span>проходной балл</span></div></div>';
     h += '<h2 class="ct-h" tabindex="-1" data-focus>Перед началом</h2>';
-    h += '<ul class="ticks"><li>Один вопрос на экране, можно возвращаться назад.</li><li>Порядок вопросов и вариантов перемешивается при каждой попытке.</li><li>В сопоставлении балл даётся за каждую верную пару.</li><li>Рекомендуемое время — 40 минут, таймер завершит тест автоматически.</li><li><b>Тест проходится один раз.</b> Правильные ответы и разбор ошибок появятся после завершения.</li></ul>';
+    h += '<ul class="ticks"><li>Один вопрос на экране, можно возвращаться назад.</li><li>Порядок вопросов и вариантов перемешивается при каждой попытке.</li><li>В сопоставлении балл даётся за каждую верную пару.</li><li>Рекомендуемое время — ' + MIN + ' минут, таймер завершит тест автоматически.</li><li><b>Тест проходится один раз.</b> Правильные ответы и разбор ошибок появятся после завершения.</li></ul>';
     h += '<div class="ct-blocks">' + SECS.map(function(s){ return '<span>' + esc(s) + '</span>'; }).join('') + '</div>';
     if (best) h += '<div class="ct-best">Ваш результат: <b>' + best.pct + ' %</b> (' + best.score + ' из ' + best.max + ') — ' + grade(best.pct) + '</div>';
     if (n >= MAX_ATT) {
@@ -144,17 +156,20 @@
   }
 
   function compute(){
-    var tot = 0, max = 0, sec = {};
+    var tot = 0, max = 0, sec = {}, ch = {};
     SECS.forEach(function(s){ sec[s] = { s: 0, m: 0 }; });
-    Q.forEach(function(it, i){ var s = scoreOf(i); tot += s; max += it.q.points; sec[it.q.section].s += s; sec[it.q.section].m += it.q.points; });
+    CHS.forEach(function(c){ ch[c] = { s: 0, m: 0 }; });
+    Q.forEach(function(it, i){ var s = scoreOf(i), q = it.q; tot += s; max += q.points; sec[q.section].s += s; sec[q.section].m += q.points;
+      if (q.chapter != null) { ch[q.chapter].s += s; ch[q.chapter].m += q.points; } });
     var pct = Math.round(tot / max * 100);
-    return { score: num(tot), max: max, pct: pct, sec: sec, used: Math.min(LIMIT, Math.round((Date.now() - started) / 1000)) };
+    return { score: num(tot), max: max, pct: pct, sec: sec, ch: ch, used: Math.min(LIMIT, Math.round((Date.now() - started) / 1000)) };
   }
   function report(r){
     var d = new Date(), st = load();
     var lines = ['DAR ARABIC — ' + TITLE, 'Студент: ' + name,
       'Дата: ' + d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
       'Результат: ' + r.score + ' из ' + r.max + ' (' + r.pct + ' %) — ' + grade(r.pct) + (r.pct >= PASS ? ', зачёт' : ', не зачтено'),
+      (CHS.length ? 'По главам: ' + CHS.map(function(c){ return 'гл. ' + c + ' ' + cp(r, c) + ' %'; }).join('; ') + '\n' + (weak(r).length ? 'Повторить: ' + weak(r).map(function(c){ return 'главу ' + c; }).join(', ') : 'Все главы — от ' + PASS + ' %') + '\n' : '') +
       'По блокам: ' + SECS.map(function(s){ return s + ' ' + Math.round(r.sec[s].s / r.sec[s].m * 100) + ' %'; }).join('; '),
       'Время: ' + fmt(r.used) + (r.timeout ? ' (время вышло)' : '')];
     return lines.join('\n');
@@ -167,6 +182,17 @@
     h += '<span class="ct-badge ' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'Тест сдан' : 'Тест не сдан') + '</span>';
     h += '<h2 class="ct-h" tabindex="-1" data-focus>' + grade(r.pct) + '</h2><p class="ct-big">' + r.score + ' из ' + r.max + ' баллов</p>';
     h += '<p class="ct-muted">Проходной балл — ' + PASS + ' %. Время: ' + fmt(r.used) + (r.timeout ? ' (время вышло)' : '') + '.</p></div></div>';
+    if (CHS.length) {
+      var wk = weak(r);
+      h += '<h3 class="ct-sh">Результат по главам</h3>';
+      h += wk.length ? '<div class="ct-note">Повторите: <b>' + wk.map(function(c){ return 'главу ' + c; }).join(', ') + '</b> — результат ниже ' + PASS + ' %.</div>' : '<div class="ct-note ok">Все главы — ' + PASS + ' % и выше. ما شاء الله</div>';
+      h += '<div class="ct-secs ct-chs">';
+      CHS.forEach(function(c){
+        var p = cp(r, c), bad = p < PASS;
+        h += '<div class="ct-srow"><span>Глава ' + c + (bad ? ' <em>→ повторите</em>' : '') + '</span><div class="ct-sbar"><i class="' + (bad ? 'fail' : 'pass') + '" style="width:' + p + '%"></i></div><b>' + p + ' %</b><small>' + num(r.ch[c].s) + '/' + r.ch[c].m + '</small></div>';
+      });
+      h += '</div>';
+    }
     h += '<h3 class="ct-sh">Результат по блокам</h3><div class="ct-secs">';
     SECS.forEach(function(s){
       var p = Math.round(r.sec[s].s / r.sec[s].m * 100);
@@ -228,7 +254,8 @@
     var r = compute(); r.timeout = !!timeout;
     var st = load();
     st.attempts.push({ date: new Date().toISOString(), name: name, score: r.score, max: r.max, pct: r.pct,
-      sections: SECS.map(function(s){ return [s, Math.round(r.sec[s].s / r.sec[s].m * 100)]; }) });
+      sections: SECS.map(function(s){ return [s, Math.round(r.sec[s].s / r.sec[s].m * 100)]; }),
+      chapters: CHS.map(function(c){ return [c, cp(r, c)]; }) });
     save(st); last = r; phase = 'res'; render();
   }
   function copy(text, btn){
@@ -262,7 +289,7 @@
   });
 
   fetch(SRC).then(function(r){ if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function(j){ data = j; var by = {}; SECS = []; j.questions.forEach(function(q){ if (!by[q.section]) { by[q.section] = 1; SECS.push(q.section); } }); render(false); })
+    .then(function(j){ data = j; order(); render(false); })
     .catch(function(){ root.innerHTML = '<div class="ct-card"><div class="ct-note">Не удалось загрузить вопросы теста. Обновите страницу или напишите преподавателю.</div></div>'; });
 
   window.DAR_CT = { _state: function(){ return { Q: Q, ans: ans, phase: phase }; }, _finish: finish, _score: scoreOf };
