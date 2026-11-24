@@ -6,7 +6,7 @@
   var root = document.getElementById('ct'); if (!root) return;
   var SRC = root.getAttribute('data-src'), TID = root.getAttribute('data-id') || 'test';
   var TITLE = root.getAttribute('data-title') || 'Тест';
-  var KEY = 'dar_ct_' + TID, MAX_ATT = 3, LIMIT = 40 * 60, PASS = 70;
+  var KEY = 'dar_ct_' + TID, MAX_ATT = 1, LIMIT = 40 * 60, PASS = 70;
   var ARC = '؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿';
   var reAr = new RegExp('[' + ARC + ']'), reLat = /[A-Za-zА-Яа-яЁё]/;
   var reRun = new RegExp('[_' + ARC + ']+(?:[\\s_+=]+[_' + ARC + ']+)*', 'g');
@@ -83,14 +83,14 @@
     var h = '<div class="ct-card ct-intro">';
     h += '<div class="ct-facts"><div><b>' + data.questions.length + '</b><span>' + plural(data.questions.length, 'вопрос', 'вопроса', 'вопросов') + '</span></div><div><b>' + tp + '</b><span>' + plural(tp, 'балл', 'балла', 'баллов') + '</span></div><div><b>40</b><span>минут</span></div><div><b>' + PASS + ' %</b><span>проходной балл</span></div></div>';
     h += '<h2 class="ct-h" tabindex="-1" data-focus>Перед началом</h2>';
-    h += '<ul class="ticks"><li>Один вопрос на экране, можно возвращаться назад.</li><li>Порядок вопросов и вариантов перемешивается при каждой попытке.</li><li>В сопоставлении балл даётся за каждую верную пару.</li><li>Рекомендуемое время — 40 минут, таймер завершит тест автоматически.</li></ul>';
+    h += '<ul class="ticks"><li>Один вопрос на экране, можно возвращаться назад.</li><li>Порядок вопросов и вариантов перемешивается при каждой попытке.</li><li>В сопоставлении балл даётся за каждую верную пару.</li><li>Рекомендуемое время — 40 минут, таймер завершит тест автоматически.</li><li><b>Тест проходится один раз.</b> Правильные ответы и разбор ошибок появятся после завершения.</li></ul>';
     h += '<div class="ct-blocks">' + SECS.map(function(s){ return '<span>' + esc(s) + '</span>'; }).join('') + '</div>';
-    if (best) h += '<div class="ct-best">Ваш лучший результат: <b>' + best.pct + ' %</b> (' + best.score + ' из ' + best.max + ') · попыток: ' + n + ' из ' + MAX_ATT + '</div>';
+    if (best) h += '<div class="ct-best">Ваш результат: <b>' + best.pct + ' %</b> (' + best.score + ' из ' + best.max + ') — ' + grade(best.pct) + '</div>';
     if (n >= MAX_ATT) {
-      h += '<div class="ct-note">Вы использовали все ' + MAX_ATT + ' попытки — засчитывается лучший результат. Если нужна ещё попытка, напишите преподавателю.</div>';
+      h += '<div class="ct-note">Вы уже прошли этот тест. Если нужна ещё попытка, напишите преподавателю.</div>';
     } else {
       h += '<form class="ct-start" id="ctStart" novalidate><label for="ctName">Имя и группа</label><input id="ctName" maxlength="80" autocomplete="name" placeholder="Например: Ахмад, группа «Этап 1»" value="' + esc(st.name || '') + '"><p class="ct-err" id="ctErr" role="alert"></p>';
-      h += '<button class="btn btn-gold" type="submit">Начать тест · попытка ' + (n + 1) + ' из ' + MAX_ATT + '</button></form>';
+      h += '<button class="btn btn-gold" type="submit">Начать тест</button></form>';
     }
     return h + '</div>';
   }
@@ -156,8 +156,7 @@
       'Дата: ' + d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
       'Результат: ' + r.score + ' из ' + r.max + ' (' + r.pct + ' %) — ' + grade(r.pct) + (r.pct >= PASS ? ', зачёт' : ', не зачтено'),
       'По блокам: ' + SECS.map(function(s){ return s + ' ' + Math.round(r.sec[s].s / r.sec[s].m * 100) + ' %'; }).join('; '),
-      'Время: ' + fmt(r.used) + (r.timeout ? ' (время вышло)' : ''),
-      'Попытка ' + st.attempts.length + ' из ' + MAX_ATT + ', лучший результат: ' + bestOf(st).pct + ' %'];
+      'Время: ' + fmt(r.used) + (r.timeout ? ' (время вышло)' : '')];
     return lines.join('\n');
   }
 
@@ -167,7 +166,7 @@
     h += '<div class="ct-score"><div class="ct-ring ' + (ok ? 'pass' : 'fail') + '" style="--p:' + r.pct + '"><b>' + r.pct + '<small> %</small></b></div><div>';
     h += '<span class="ct-badge ' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'Тест сдан' : 'Тест не сдан') + '</span>';
     h += '<h2 class="ct-h" tabindex="-1" data-focus>' + grade(r.pct) + '</h2><p class="ct-big">' + r.score + ' из ' + r.max + ' баллов</p>';
-    h += '<p class="ct-muted">Проходной балл — ' + PASS + ' %. Время: ' + fmt(r.used) + (r.timeout ? ' (время вышло)' : '') + '. Попытка ' + n + ' из ' + MAX_ATT + (n > 1 ? ', лучший результат — ' + best.pct + ' %' : '') + '.</p></div></div>';
+    h += '<p class="ct-muted">Проходной балл — ' + PASS + ' %. Время: ' + fmt(r.used) + (r.timeout ? ' (время вышло)' : '') + '.</p></div></div>';
     h += '<h3 class="ct-sh">Результат по блокам</h3><div class="ct-secs">';
     SECS.forEach(function(s){
       var p = Math.round(r.sec[s].s / r.sec[s].m * 100);
