@@ -32,6 +32,7 @@
   function shuffle(a){ a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   function range(n){ var r = []; for (var i = 0; i < n; i++) r.push(i); return r; }
   function fmt(sec){ sec = Math.max(0, sec); var m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+  function plural(n, a, b, c){ var m = n % 100, k = n % 10; return (m > 10 && m < 20) ? c : k === 1 ? a : (k > 1 && k < 5) ? b : c; }
   function num(x){ return Math.round(x * 10) / 10; }
   function load(){ try { var s = JSON.parse(localStorage.getItem(KEY)); if (s && s.attempts) return s; } catch(e){} return { name: '', attempts: [] }; }
   function save(s){ try { localStorage.setItem(KEY, JSON.stringify(s)); } catch(e){} }
@@ -80,7 +81,7 @@
   function intro(){
     var st = load(), n = st.attempts.length, best = bestOf(st), tp = totalPoints();
     var h = '<div class="ct-card ct-intro">';
-    h += '<div class="ct-facts"><div><b>' + data.questions.length + '</b><span>вопроса</span></div><div><b>' + tp + '</b><span>баллов</span></div><div><b>40</b><span>минут</span></div><div><b>' + PASS + ' %</b><span>проходной балл</span></div></div>';
+    h += '<div class="ct-facts"><div><b>' + data.questions.length + '</b><span>' + plural(data.questions.length, 'вопрос', 'вопроса', 'вопросов') + '</span></div><div><b>' + tp + '</b><span>' + plural(tp, 'балл', 'балла', 'баллов') + '</span></div><div><b>40</b><span>минут</span></div><div><b>' + PASS + ' %</b><span>проходной балл</span></div></div>';
     h += '<h2 class="ct-h" tabindex="-1" data-focus>Перед началом</h2>';
     h += '<ul class="ticks"><li>Один вопрос на экране, можно возвращаться назад.</li><li>Порядок вопросов и вариантов перемешивается при каждой попытке.</li><li>В сопоставлении балл даётся за каждую верную пару.</li><li>Рекомендуемое время — 40 минут, таймер завершит тест автоматически.</li></ul>';
     h += '<div class="ct-blocks">' + SECS.map(function(s){ return '<span>' + esc(s) + '</span>'; }).join('') + '</div>';
