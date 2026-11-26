@@ -670,3 +670,9 @@ html[dir=rtl] .tcard b.ar{font-size:34px}
 }
 .ct-srow em{font-style:normal;color:var(--bad);font-size:13px;font-weight:700;margin-left:4px;white-space:nowrap}
 .ct-chs{margin-top:16px}
+/* arabic min 28px */
+.ct-arin{font-size:max(1.65em,28px)}
+.ct-ms.is-ar{font-size:28px}
+.ct-rq[lang=ar],.ct-ans span[lang=ar],.ct-pr>span[lang=ar]{font-size:28px}
+.ct-srow span{line-height:1.35}
+.ct-sign{font-size:48px!important;line-height:1!important;vertical-align:-.3em;color:var(--emerald)}

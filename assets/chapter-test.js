@@ -15,16 +15,20 @@
   var data = null, SECS = [], CHS = [], Q = [], ans = [], cur = 0, phase = 'intro', started = 0, timer = null, name = '', last = null;
 
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  // знак без базовой буквы (ۘ ۙ ۜ и т.п.) — показываем на пунктирном кружке, только для отображения
+  var reMark = /^[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/;
+  function base(m){ return reMark.test(m) ? '\u25CC' + m : m; }
   function isAr(s){ s = String(s); return reAr.test(s) && !reLat.test(s); }
   function arAttr(s){ return isAr(s) ? ' dir="rtl" lang="ar"' : ''; }
   // Текст с изолированными арабскими фрагментами (для смешанных строк)
   function txt(s){
     s = String(s);
-    if (!reAr.test(s) || isAr(s)) return esc(s);
+    if (!reAr.test(s)) return esc(s);
+    if (isAr(s)) return esc(base(s));
     var out = '', pos = 0;
     s.replace(reRun, function(m, off){
       out += esc(s.slice(pos, off));
-      out += reAr.test(m) ? '<bdi class="ct-arin" lang="ar" dir="rtl">' + esc(m) + '</bdi>' : esc(m);
+      out += reAr.test(m) ? '<bdi class="ct-arin' + (reMark.test(m) ? ' ct-sign' : '') + '" lang="ar" dir="rtl">' + esc(base(m)) + '</bdi>' : esc(m);
       pos = off + m.length; return m;
     });
     return out + esc(s.slice(pos));
@@ -170,7 +174,8 @@
       'Дата: ' + d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
       'Результат: ' + r.score + ' из ' + r.max + ' (' + r.pct + ' %) — ' + grade(r.pct) + (r.pct >= PASS ? ', зачёт' : ', не зачтено'),
       (CHS.length ? 'По главам: ' + CHS.map(function(c){ return 'гл. ' + c + ' ' + cp(r, c) + ' %'; }).join('; ') + '\n' + (weak(r).length ? 'Повторить: ' + weak(r).map(function(c){ return 'главу ' + c; }).join(', ') : 'Все главы — от ' + PASS + ' %') + '\n' : '') +
-      'По блокам: ' + SECS.map(function(s){ return s + ' ' + Math.round(r.sec[s].s / r.sec[s].m * 100) + ' %'; }).join('; '),
+      (!CHS.length ? (function(){ var w = SECS.filter(function(x){ return Math.round(r.sec[x].s / r.sec[x].m * 100) < PASS; }); return (w.length ? 'Повторить: ' + w.map(function(x){ return 'раздел «' + x + '»'; }).join(', ') : 'Все темы — от ' + PASS + ' %') + '\n'; })() : '') +
+      'По ' + (CHS.length ? 'блокам' : 'темам') + ': ' + SECS.map(function(s){ return s + ' ' + Math.round(r.sec[s].s / r.sec[s].m * 100) + ' %'; }).join('; '),
       'Время: ' + fmt(r.used) + (r.timeout ? ' (время вышло)' : '')];
     return lines.join('\n');
   }
@@ -193,10 +198,13 @@
       });
       h += '</div>';
     }
-    h += '<h3 class="ct-sh">Результат по блокам</h3><div class="ct-secs">';
+    var wsec = SECS.filter(function(x){ return Math.round(r.sec[x].s / r.sec[x].m * 100) < PASS; });
+    h += '<h3 class="ct-sh">Результат по ' + (CHS.length ? 'блокам' : 'темам') + '</h3>';
+    if (!CHS.length) h += wsec.length ? '<div class="ct-note">Повторите: <b>' + wsec.map(function(x){ return 'раздел «' + esc(x) + '»'; }).join(', ') + '</b> — результат ниже ' + PASS + ' %.</div>' : '<div class="ct-note ok">Все темы — ' + PASS + ' % и выше. ما شاء الله</div>';
+    h += '<div class="ct-secs' + (CHS.length ? '' : ' ct-chs') + '">';
     SECS.forEach(function(s){
       var p = Math.round(r.sec[s].s / r.sec[s].m * 100);
-      h += '<div class="ct-srow"><span>' + esc(s) + '</span><div class="ct-sbar"><i class="' + (p >= PASS ? 'pass' : 'fail') + '" style="width:' + p + '%"></i></div><b>' + p + ' %</b><small>' + num(r.sec[s].s) + '/' + r.sec[s].m + '</small></div>';
+      h += '<div class="ct-srow"><span>' + esc(s) + (!CHS.length && p < PASS ? ' <em>→ повторите</em>' : '') + '</span><div class="ct-sbar"><i class="' + (p >= PASS ? 'pass' : 'fail') + '" style="width:' + p + '%"></i></div><b>' + p + ' %</b><small>' + num(r.sec[s].s) + '/' + r.sec[s].m + '</small></div>';
     });
     h += '</div>';
     var rep = report(r);
